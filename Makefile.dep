@@ -1,3 +1,4 @@
-cgrip.o: cgrip.c cgrip.h cgapi.h
+cgrip.o: cgrip.c cgrip.h cgapi.h cgpro.h
 cgapi.o: cgapi.c cgapi.h cgrip.h lodepng.h
+cgpro.o: cgpro.c cgpro.h cgapi.h
 lodepng.o: lodepng.c lodepng.h

@@ -90,7 +90,7 @@ static struct cgapi_mem cgapi_curl_chunk(const char *url)
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cgapi_read_mem);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, (long) arguments.verbose);
+    /* curl_easy_setopt(curl, CURLOPT_VERBOSE, (long) arguments.verbose); */
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, buf);
     res = curl_easy_perform(curl);
     out.sz++; /* null char */
@@ -148,10 +148,10 @@ static int cgapi_rip_textures(struct cgapi_material *mat, struct cgapi_mem zip_m
                     break;
                 }
                 verbose("found %s %s\n", mat->id, cgapi_matmap[i]);
-                lodepng_decode32(&map->data, &map->width, &map->height, data, size);
+                err = lodepng_decode32(&map->data, &map->width, &map->height, data, size);
                 free(data);
                 if (map->data == NULL)
-                    warn("failed to load image %s\n", archive_entry_pathname(entry));
+                    warn("failed to load image %s: %s\n", archive_entry_pathname(entry), lodepng_error_text(err));
                 break;
             }
         }
@@ -295,8 +295,7 @@ static void cgapi_map_save(struct cgapi_material *mat, enum cgapi_matmap matmap,
         sz += strncat_s(buf + sz, out, sizeof buf - sz);
         sz += strncat_s(buf + sz, "/", sizeof buf - sz);
     }
-    sz += strncat_s(buf + sz, mat->id, sizeof buf - sz);
-    sz += strncat_s(buf + sz, cgapi_output[matmap], sizeof buf - sz);
+    cgapi_material_get_filename(mat, matmap, buf + sz, sizeof buf - sz);
     verbose("found extension: %s\n", get_extension(buf));
     printf("extracting %s%s\n", mat->id, cgapi_output[matmap]);
     if (get_extension(buf) && !strcmp(get_extension(buf), "png")) { /* TODO: other formats? */
@@ -306,6 +305,13 @@ static void cgapi_map_save(struct cgapi_material *mat, enum cgapi_matmap matmap,
     } else {
         warn("path too long, failed to save material map for %s to %s\n", mat->id, buf);
     }
+}
+
+void cgapi_material_get_filename(struct cgapi_material *mat, enum cgapi_matmap map, char *buf, int bufsz)
+{
+    int sz = 0;
+    sz += strncat_s(buf + sz, mat->id, bufsz - sz);
+    sz += strncat_s(buf + sz, cgapi_output[map], bufsz - sz);
 }
 
 void cgapi_material_save(struct cgapi_material *mat, const char *out)

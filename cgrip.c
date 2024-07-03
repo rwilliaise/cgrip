@@ -9,6 +9,7 @@
 
 #include "cgrip.h"
 #include "cgapi.h"
+#include "cgpro.h"
 
 struct arguments arguments = { 0 };
 
@@ -22,6 +23,8 @@ struct usage {
     { "-q, --quality QUALITY", "Save materials of specific quality. options: 1K, 2K, 4K, 8K. default: 1K" },
     { "-a, --all", "Save all material maps found in the zips." },
     { "-z, --zip [DIR]", "Save material zip file, optionally to dir DIR. default: OUTPUT" },
+    { "-s, --downscale SIZE", "Downscale exported matmaps. format: WxH" },
+    { "--macro SCALE", "When downscaling, multiply the size of non-albedo maps by this." },
     { "--ao", "Save ambientocclusion matmap." },
     { "-c, --color", "Save color/albedo matmap. True by default if nothing specified." },
     { "-d, --disp", "Save displacement matmap." },
@@ -154,8 +157,8 @@ static enum cgrip_normal_type get_normal_type(char *arg)
 
 int main(int argc, char *argv[])
 {
-    int opt, pargc;
-    const char *short_opts = ":ho:vq:az::demrcn::";
+    int opt, pargc, i;
+    const char *short_opts = ":ho:vq:as:z::demrcn::";
     struct option long_opts[] = {
         { "help", no_argument, NULL, 'h' },
         { "output", required_argument, NULL, 'o' },
@@ -163,6 +166,8 @@ int main(int argc, char *argv[])
         { "verbose", no_argument, NULL, 'v' },
         { "disable-color", no_argument, NULL, 'D' },
         { "quality", required_argument, NULL, 'q' },
+        { "downscale", required_argument, NULL, 's' },
+        { "macro", required_argument, NULL, 'M' },
         
         { "all", no_argument, NULL, 'a' },
         { "ao", no_argument, NULL, 'A' },
@@ -177,7 +182,9 @@ int main(int argc, char *argv[])
     };
     struct cgapi_materials mats = { 0 };
     enum cgapi_quality quality = cgapi_quality_1k_png;
+    char *endptr;
 
+    arguments.macro_scale = 0;
 #ifdef CGRIP_TERMCOLOR
     arguments.use_term_colors = getenv("TERM") != NULL;
 #endif
@@ -205,6 +212,23 @@ int main(int argc, char *argv[])
         case 'z': /* --zip */
             arguments.save_zip = 1;
             arguments.output_zip = optarg;
+            break;
+        case 's': /* --downscale */
+            arguments.downscale_width = strtol(optarg, &endptr, 10);
+            if (*endptr != 'x')
+                fatal("incorrect --downscale SIZE format, expected WxH\n");
+            arguments.downscale_height = strtol(++endptr, &endptr, 10);
+            verbose("target downscale: %dx%d\n", arguments.downscale_width, arguments.downscale_height);
+            if (arguments.downscale_width * arguments.downscale_height == 0)
+                warn("invalid downscale SIZE, ignoring\n");
+            else
+                arguments.downscale = 1;
+            break;
+        case 'M': /* --macro */
+            arguments.macro_scale = strtol(optarg, &endptr, 10);
+            verbose("using macro_scale %u\n", arguments.macro_scale);
+            if (*endptr && *endptr != 'x')
+                warn("ignored garbage characters for --macro: %s\n", endptr);
             break;
 
         case 'a': /* --all */
@@ -276,6 +300,23 @@ int main(int argc, char *argv[])
         usage(EXIT_FAILURE);
 
     mats = cgapi_download_ids(quality, (const char **) &argv[optind], pargc);
+
+    if (arguments.downscale)
+        for (i = 0; i < mats.material_count; i++) {
+            struct cgapi_material *mat = &mats.materials[i];
+            int j;
+            for (j = 0; j < CGAPI_MAPNUM; j++) {
+                struct cgapi_map *map = &mat->maps[j];
+                unsigned int width = arguments.downscale_width, height = arguments.downscale_height;
+                if (j != cgapi_matmap_color && arguments.macro_scale > 0) {
+                    width *= arguments.macro_scale;
+                    height *= arguments.macro_scale;
+                }
+                if (map->data && !cgpro_scale_nearest(map, width, height))
+                    warn("failed to scale %d for matmap %s\n", j, mat->id);
+            }
+        }
+
     cgapi_materials_save(&mats, arguments.output);
     cgapi_materials_free(&mats);
 

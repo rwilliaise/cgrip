@@ -40,6 +40,7 @@ struct cgapi_materials {
     int material_count;
 };
 
+void cgapi_material_get_filename(struct cgapi_material *mat, enum cgapi_matmap map, char *buf, int bufsz);
 void cgapi_material_save(struct cgapi_material *mat, const char *out);
 void cgapi_materials_save(struct cgapi_materials *mats, const char *out);
 struct cgapi_materials cgapi_download_ids(enum cgapi_quality quality, const char **ids, int id_count);

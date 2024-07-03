@@ -45,7 +45,10 @@ extern struct arguments {
     char *output;
     char *output_zip;
     enum cgrip_normal_type save_normal;
+    unsigned int downscale_width, downscale_height;
+    unsigned int macro_scale;
     unsigned verbose : 1;
+    unsigned downscale : 1;
     unsigned save_zip : 1;
     unsigned save_ambientocclusion: 1;
     unsigned save_color : 1;
