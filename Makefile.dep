@@ -1,1 +1,2 @@
-cgrip.o: cgrip.c
+cgrip.o: cgrip.c cgrip.h cgapi.h
+cgapi.o: cgapi.c cgapi.h cgrip.h
