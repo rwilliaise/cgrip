@@ -1,4 +1,5 @@
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -11,24 +12,36 @@
 
 struct arguments arguments = { 0 };
 
+struct usage {
+    char *option;
+    char *description;
+} usages[] = {
+    { "-h, --help", "Show usage information." },
+    { "-o, --output OUTPUT", "Outputs processed image file to dir OUTPUT." },
+    { "-v, --verbose", "Turn on extra debug printing. Floods console." },
+    { "-q, --quality QUALITY", "Save materials of specific quality. options: 1K, 2K, 4K, 8K. default: 1K" },
+    { "-a, --all", "Save all material maps found in the zips." },
+    { "-z, --zip [DIR]", "Save material zip file, optionally to dir DIR. default: OUTPUT" },
+    { "--ao", "Save ambientocclusion matmap." },
+    { "-c, --color", "Save color/albedo matmap. True by default if nothing specified." },
+    { "-d, --disp", "Save displacement matmap." },
+    { "-e, --emission", "Save emission matmap" },
+    { "-m, --metalness", "Save metalness matmap" },
+    { "--opacity", "Save opacity matmap" },
+    { "-r, --roughness", "Save roughness matmap" },
+    { "-n, --normal [TYPE]", "options: NONE, GL, DX, BOTH. unsupplied: NONE, otherwise default: GL" },
+    { "--disable-color", "Force cgrip to not output terminal color. Fixes odd terminal output." },
+    { 0 },
+};
+
 const char *usage_text =
     "Usage: cgrip [OPTIONS] ID...\n"
     "cgrip " CGRIP_VERSION
     "\n"
-    "Downloads materials using ids ID... off of AmbientCG.\n"
+    "Downloads materials using ids ID... off of AmbientCG. If specific material maps\n"
+    "are not specified to be saved, cgrip downloads the albedo by default.\n"
     "\n"
-    "optional arguments\n"
-    "   -h, --help\n"
-    "       Show usage information.\n"
-    "   -o, --output OUTPUT\n"
-    "       Outputs processed image file to OUTPUT.\n"
-    "   -v, --verbose\n"
-    "       Print some extra debug things.\n"
-#ifdef CGRIP_TERMCOLOR
-    "   --no-color\n"
-    "       Forces cgrip to not print color codes.\n"
-#endif
-    ;
+    "optional arguments";
 
 void verbose(const char *fmt, ...)
 {
@@ -44,7 +57,18 @@ void verbose(const char *fmt, ...)
     putcolor(CGRIP_RESET);
 }
 
-void fatal(const char *fmt, ...)
+void warn(const char *fmt, ...)
+{
+    va_list args;
+    putcolor(CGRIP_YELLOW);
+    fputs("[WARN] ", stdout);
+    va_start(args, fmt);
+    vfprintf(stdout, fmt, args);
+    va_end(args);
+    putcolor(CGRIP_RESET);
+}
+
+CGRIP_NORETURN void fatal(const char *fmt, ...)
 {
     va_list args;
     fputcolor(CGRIP_RED, stderr);
@@ -72,11 +96,18 @@ void fputcolor(const char *col, FILE *fp)
 
 static void usage(int status)
 {
+    struct usage *u;
     puts(usage_text);
+    for (u = usages; u->description; u++) {
+        printf("    %s\n", u->option);
+        printf("        %s\n", u->description);
+    }
     exit(status);
 }
 
-static int is_directory(const char *path) {
+/* TODO: cross-platform */
+static int is_directory(const char *path)
+{
     struct stat s;
     if (stat(path, &s) == 0) {
         return S_ISDIR(s.st_mode);
@@ -84,29 +115,68 @@ static int is_directory(const char *path) {
     return 0;
 }
 
-static const char *get_extension(const char *path) {
-    const char *p;
-    for (p = path + strlen(path); p > path; p--) {
-        if (*p == '.')
-            return ++p;
-    }
-    return NULL;
+static const char *quality_types[] = {
+    "1k",
+    "2k",
+    "4k",
+    "8k",
+};
+
+static enum cgapi_quality get_quality_type(char *arg)
+{
+    char *p;
+    enum cgapi_quality i;
+    for (p = arg; *p; p++) *p = tolower(*p);
+    for (i = 0; i < 4; i++)
+        if (!strcmp(quality_types[i], arg)) return i;
+    warn("got unexpected --quality argument %s, defaulting to 1k\n", arg);
+    return cgapi_quality_1k_png;
+}
+
+static const char *save_normal_types[] = {
+    "none",
+    "gl",
+    "dx",
+    "both",
+};
+
+static enum cgrip_normal_type get_normal_type(char *arg)
+{
+    char *p;
+    enum cgrip_normal_type i;
+    if (arg == NULL) return cgrip_normal_type_gl;
+    for (p = arg; *p; p++) *p = tolower(*p);
+    for (i = 0; i < 4; i++)
+        if (!strcmp(save_normal_types[i], arg)) return i;
+    warn("got unexpected --save-normal argument %s, defaulting to gl\n", arg);
+    return cgrip_normal_type_gl;
 }
 
 int main(int argc, char *argv[])
 {
     int opt, pargc;
-    const char *short_opts = ":hvo:";
+    const char *short_opts = ":ho:vq:az::demrcn::";
     struct option long_opts[] = {
         { "help", no_argument, NULL, 'h' },
         { "output", required_argument, NULL, 'o' },
+        { "zip", optional_argument, NULL, 'z' },
         { "verbose", no_argument, NULL, 'v' },
-        { "no-color", no_argument, NULL, 'n' },
+        { "disable-color", no_argument, NULL, 'D' },
+        { "quality", required_argument, NULL, 'q' },
+        
+        { "all", no_argument, NULL, 'a' },
+        { "ao", no_argument, NULL, 'A' },
+        { "disp", no_argument, NULL, 'd' },
+        { "emission", no_argument, NULL, 'e' },
+        { "metalness", no_argument, NULL, 'm' },
+        { "opacity", no_argument, NULL, 'O' },
+        { "roughness", no_argument, NULL, 'r' },
+        { "color", no_argument, NULL, 'c' },
+        { "normal", required_argument, NULL, 'n' },
         { 0 },
     };
     struct cgapi_materials mats = { 0 };
-
-    MagickWandGenesis();
+    enum cgapi_quality quality = cgapi_quality_1k_png;
 
 #ifdef CGRIP_TERMCOLOR
     arguments.use_term_colors = getenv("TERM") != NULL;
@@ -118,19 +188,62 @@ int main(int argc, char *argv[])
             break;
 
         switch (opt) {
-        case 'h':
+        case 'h': /* --help */
             usage(EXIT_SUCCESS);
             break;
-        case 'o':
+        case 'o': /* --output */
             if (!is_directory(optarg))
                 fatal("%s is not valid output directory\n", optarg);
             arguments.output = optarg;
             break;
-        case 'v':
+        case 'v': /* --verbose */
             arguments.verbose = 1;
             break;
+        case 'q': /* --quality */
+            quality = get_quality_type(optarg);
+            break;
+        case 'z': /* --zip */
+            arguments.save_zip = 1;
+            arguments.output_zip = optarg;
+            break;
+
+        case 'a': /* --all */
+            arguments.save_ambientocclusion = 1;
+            arguments.save_color = 1;
+            arguments.save_displacement = 1;
+            arguments.save_emission = 1;
+            arguments.save_metalness = 1;
+            arguments.save_opacity = 1;
+            arguments.save_roughness = 1;
+            if (arguments.save_normal == cgrip_normal_type_none)
+                arguments.save_normal = cgrip_normal_type_both;
+            break;
+        case 'A': /* --ao */
+            arguments.save_ambientocclusion = 1;
+            break;
+        case 'c': /* --color */
+            arguments.save_color = 1;
+            break;
+        case 'd': /* --disp */
+            arguments.save_displacement = 1;
+            break;
+        case 'e': /* --emission */
+            arguments.save_emission = 1;
+            break;
+        case 'm': /* --metalness */
+            arguments.save_metalness = 1;
+            break;
+        case 'O': /* --opacity */
+            arguments.save_opacity = 1;
+            break;
+        case 'r': /* --roughness */
+            arguments.save_roughness = 1;
+            break;
+        case 'n': /* --normal */
+            arguments.save_normal = get_normal_type(optarg);
+            break;
 #ifdef CGRIP_TERMCOLOR
-        case 'n':
+        case 'D':
             arguments.use_term_colors = 0;
             break;
 #endif
@@ -144,13 +257,27 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (
+        !arguments.save_ambientocclusion
+        && !arguments.save_color
+        && !arguments.save_displacement
+        && !arguments.save_emission
+        && !arguments.save_metalness
+        && !arguments.save_normal 
+        && !arguments.save_opacity 
+        && !arguments.save_roughness
+    ) {
+        arguments.save_color = 1;
+        verbose("no matmaps specified, saving albedo\n");
+    }
 
     pargc = argc - optind;
     if (pargc < 1)
         usage(EXIT_FAILURE);
 
-    mats = cgapi_download_ids(cgapi_quality_1k_png, (const char **) &argv[optind], pargc);
+    mats = cgapi_download_ids(quality, (const char **) &argv[optind], pargc);
+    cgapi_materials_save(&mats, arguments.output);
+    cgapi_materials_free(&mats);
 
-    MagickWandTerminus();
     return 0;
 }

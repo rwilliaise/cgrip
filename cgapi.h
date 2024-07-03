@@ -2,18 +2,21 @@
 #ifndef CGAPI_H_
 #define CGAPI_H_
 
-#include <MagickCore/magick-type.h>
-
-#define CGAPI_MAPNUM 6
+#define CGAPI_MAPNUM 9
 
 enum cgapi_quality {
     cgapi_quality_1k_png,
-    cgapi_quality_2k_png
+    cgapi_quality_2k_png,
+    cgapi_quality_4k_png,
+    cgapi_quality_8k_png
 };
 
 enum cgapi_matmap {
+    cgapi_matmap_ambientocclusion,
     cgapi_matmap_color,
     cgapi_matmap_displacement,
+    cgapi_matmap_emission,
+    cgapi_matmap_metalness,
     cgapi_matmap_normaldx,
     cgapi_matmap_normalgl,
     cgapi_matmap_opacity,
@@ -21,8 +24,8 @@ enum cgapi_matmap {
 };
 
 struct cgapi_map {
-    Image *image;
-    ImageInfo *info;
+    unsigned char *data;
+    unsigned int width, height;
 };
 
 struct cgapi_material {
@@ -37,6 +40,8 @@ struct cgapi_materials {
     int material_count;
 };
 
+void cgapi_material_save(struct cgapi_material *mat, const char *out);
+void cgapi_materials_save(struct cgapi_materials *mats, const char *out);
 struct cgapi_materials cgapi_download_ids(enum cgapi_quality quality, const char **ids, int id_count);
 void cgapi_materials_free(struct cgapi_materials *mats);
 

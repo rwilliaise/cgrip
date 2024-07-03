@@ -1,8 +1,8 @@
 NAME=cgrip
 CC=gcc
-CFLAGS=$(shell pkg-config --cflags libarchive libcurl) $(shell MagickWand-config --cflags) -ansi -Wall -pedantic -g -DCGRIP_TERMCOLOR
-LDFLAGS=$(shell pkg-config --libs libarchive libcurl) $(shell MagickWand-config --ldflags --libs)
-OBJECTS=$(NAME).o cgapi.o
+CFLAGS=$(shell pkg-config --cflags libarchive libcurl) -ansi -Wall -pedantic -g -DCGRIP_TERMCOLOR
+LDFLAGS=$(shell pkg-config --libs libarchive libcurl)
+OBJECTS=$(NAME).o cgapi.o lodepng.o
 
 .PHONY: all depend clean
 
