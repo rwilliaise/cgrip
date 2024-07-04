@@ -296,6 +296,19 @@ static void cgapi_map_save(struct cgapi_material *mat, enum cgapi_matmap matmap,
     cgapi_material_get_filename(mat, matmap, buf + sz, sizeof buf - sz);
     verbose("found extension: %s\n", get_extension(buf));
     printf("extracting %s%s\n", mat->id, cgapi_output[matmap]);
+    if (arguments.apply_opacity && matmap == cgapi_matmap_color) {
+        struct cgapi_map *opacity_map = &mat->maps[cgapi_matmap_opacity];
+        if (opacity_map->data) {
+            int i, j;
+            for (i = 0; i < map->width; i++) {
+                for (j = 0; j < map->height; j++) {
+                    unsigned char *opacity_color = &opacity_map->data[(j * opacity_map->width + i) * 4];
+                    unsigned char *color = &map->data[(j * map->width + i) * 4];
+                    color[3] = opacity_color[0];
+                }
+            }
+        }
+    }
     if (get_extension(buf) && !strcmp(get_extension(buf), "png")) { /* TODO: other formats? */
         unsigned error = lodepng_encode32_file(buf, map->data, map->width, map->height);
         if (error)
@@ -324,7 +337,7 @@ void cgapi_material_save(struct cgapi_material *mat, const char *out)
         cgapi_map_save(mat, cgapi_matmap_emission, out);
     if (arguments.save_metalness)
         cgapi_map_save(mat, cgapi_matmap_metalness, out);
-    if (arguments.save_opacity)
+    if (arguments.save_opacity && !arguments.apply_opacity)
         cgapi_map_save(mat, cgapi_matmap_opacity, out);
     if (arguments.save_roughness)
         cgapi_map_save(mat, cgapi_matmap_roughness, out);

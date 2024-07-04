@@ -2,7 +2,7 @@
 #ifndef CGRIP_H_
 #define CGRIP_H_
 
-#define CGRIP_VERSION "0.1.0"
+#define CGRIP_VERSION "0.1.1"
 
 #ifdef __GNUC__
 #define inline __inline
@@ -52,6 +52,7 @@ extern struct arguments {
     unsigned quantize : 1;
     unsigned gen_godot4 : 1;
     unsigned filter_nearest : 1;
+    unsigned apply_opacity : 1;
     unsigned save_zip : 1;
     unsigned save_ambientocclusion: 1;
     unsigned save_color : 1;

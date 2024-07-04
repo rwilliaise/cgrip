@@ -35,6 +35,7 @@ struct usage {
     { "-e, --emission", "Save emission matmap" },
     { "-m, --metalness", "Save metalness matmap" },
     { "--opacity", "Save opacity matmap" },
+    { "--apply-opacity", "Instead of saving opacity matmap, applies it to the colormap." },
     { "-r, --roughness", "Save roughness matmap" },
     { "-n, --normal [TYPE]", "options: NONE, GL, DX, BOTH. unsupplied: NONE, otherwise default: GL" },
     { "--disable-color", "Force cgrip to not output terminal color. Fixes odd terminal output." },
@@ -190,6 +191,7 @@ int main(int argc, char *argv[])
         { "emission", no_argument, NULL, 'e' },
         { "metalness", no_argument, NULL, 'm' },
         { "opacity", no_argument, NULL, 'O' },
+        { "apply-opacity", no_argument, NULL, 'P' },
         { "roughness", no_argument, NULL, 'r' },
         { "color", no_argument, NULL, 'c' },
         { "normal", required_argument, NULL, 'n' },
@@ -291,6 +293,8 @@ int main(int argc, char *argv[])
         case 'm': /* --metalness */
             arguments.save_metalness = 1;
             break;
+        case 'P': /* --apply-opacity */
+            arguments.apply_opacity = 1;
         case 'O': /* --opacity */
             arguments.save_opacity = 1;
             break;
@@ -310,7 +314,7 @@ int main(int argc, char *argv[])
             break;
         case '?':
         default:
-            fatal("unknown option '%c'\n", optopt);
+            fatal("unknown option '%c'\n", opt);
             break;
         }
     }
@@ -352,10 +356,11 @@ int main(int argc, char *argv[])
             for (j = 0; j < CGAPI_MAPNUM; j++) {
                 struct cgapi_map *map = &mat->maps[j];
                 unsigned int width = arguments.downscale_width, height = arguments.downscale_height;
-                if (j != cgapi_matmap_color && arguments.macro_scale > 0) {
-                    width *= arguments.macro_scale;
-                    height *= arguments.macro_scale;
-                }
+                if (j != cgapi_matmap_color && arguments.macro_scale > 0)
+                    if ((arguments.apply_opacity && j != cgapi_matmap_opacity) || !arguments.apply_opacity) {
+                        width *= arguments.macro_scale;
+                        height *= arguments.macro_scale;
+                    }
                 if (map->data && !cgpro_scale_nearest(map, width, height))
                     warn("failed to scale %d for matmap %s\n", j, mat->id);
             }

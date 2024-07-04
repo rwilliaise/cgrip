@@ -6,7 +6,7 @@ Tool for downloading material sets off of AmbientCG.
 
 ```
 Usage: cgrip [OPTIONS] ID...
-cgrip 0.1.0
+cgrip 0.1.1
 Downloads materials using ids ID... off of AmbientCG. If specific material maps
 are not specified to be saved, cgrip downloads the albedo by default.
 
@@ -45,6 +45,8 @@ optional arguments
         Save metalness matmap
     --opacity
         Save opacity matmap
+    --apply-opacity
+        Instead of saving opacity matmap, applies it to the colormap.
     -r, --roughness
         Save roughness matmap
     -n, --normal [TYPE]
