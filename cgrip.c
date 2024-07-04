@@ -24,6 +24,7 @@ struct usage {
     { "-a, --all", "Save all material maps found in the zips." },
     { "-z, --zip [DIR]", "Save material zip file, optionally to dir DIR. default: OUTPUT" },
     { "-s, --downscale SIZE", "Downscale exported matmaps. format: WxH" },
+    { "--quantize [PALETTE]", "Quantize with given palette or the default Aseprite palette." },
     { "--macro SCALE", "When downscaling, multiply the size of non-albedo maps by this." },
     { "--ao", "Save ambientocclusion matmap." },
     { "-c, --color", "Save color/albedo matmap. True by default if nothing specified." },
@@ -168,6 +169,7 @@ int main(int argc, char *argv[])
         { "quality", required_argument, NULL, 'q' },
         { "downscale", required_argument, NULL, 's' },
         { "macro", required_argument, NULL, 'M' },
+        { "quantize", optional_argument, NULL, 'Q' },
         
         { "all", no_argument, NULL, 'a' },
         { "ao", no_argument, NULL, 'A' },
@@ -181,8 +183,11 @@ int main(int argc, char *argv[])
         { 0 },
     };
     struct cgapi_materials mats = { 0 };
+    struct cgpro_palette palette;
     enum cgapi_quality quality = cgapi_quality_1k_png;
     char *endptr;
+
+    cgpro_init();
 
     arguments.macro_scale = 0;
 #ifdef CGRIP_TERMCOLOR
@@ -229,6 +234,13 @@ int main(int argc, char *argv[])
             verbose("using macro_scale %u\n", arguments.macro_scale);
             if (*endptr && *endptr != 'x')
                 warn("ignored garbage characters for --macro: %s\n", endptr);
+            break;
+        case 'Q': /* --quantize */
+            arguments.quantize = 1;
+            if (!optarg)
+                palette = cgpro_palette_load_default();
+            else
+                palette = cgpro_palette_load_from_file(optarg);
             break;
 
         case 'a': /* --all */
@@ -300,6 +312,16 @@ int main(int argc, char *argv[])
         usage(EXIT_FAILURE);
 
     mats = cgapi_download_ids(quality, (const char **) &argv[optind], pargc);
+
+    if (arguments.quantize && palette.data)
+        for (i = 0; i < mats.material_count; i++) {
+            struct cgapi_material *mat = &mats.materials[i];
+            struct cgapi_map *color = &mat->maps[cgapi_matmap_color];
+            if (color->data) {
+                verbose("quantizing %s\n", mat->id);
+                cgpro_quantize_to(color, palette);
+            }
+        }
 
     if (arguments.downscale)
         for (i = 0; i < mats.material_count; i++) {

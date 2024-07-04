@@ -49,6 +49,7 @@ extern struct arguments {
     unsigned int macro_scale;
     unsigned verbose : 1;
     unsigned downscale : 1;
+    unsigned quantize : 1;
     unsigned save_zip : 1;
     unsigned save_ambientocclusion: 1;
     unsigned save_color : 1;

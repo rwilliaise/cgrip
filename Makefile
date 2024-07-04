@@ -1,7 +1,7 @@
 NAME=cgrip
 CC=gcc
 CFLAGS=$(shell pkg-config --cflags libarchive libcurl) -ansi -Wall -pedantic -g -DCGRIP_TERMCOLOR
-LDFLAGS=$(shell pkg-config --libs libarchive libcurl)
+LDFLAGS=$(shell pkg-config --libs libarchive libcurl) -lm
 OBJECTS=$(NAME).o cgapi.o cgpro.o lodepng.o
 
 .PHONY: all depend clean

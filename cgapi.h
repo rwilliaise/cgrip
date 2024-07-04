@@ -25,6 +25,7 @@ enum cgapi_matmap {
 
 struct cgapi_map {
     unsigned char *data;
+    struct cgpro_palette *palette;
     unsigned int width, height;
 };
 
