@@ -10,6 +10,7 @@
 #include "cgrip.h"
 #include "cgapi.h"
 #include "cgpro.h"
+#include "gen_godot4.h"
 
 struct arguments arguments = { 0 };
 
@@ -26,6 +27,8 @@ struct usage {
     { "-s, --downscale SIZE", "Downscale exported matmaps. format: WxH" },
     { "--quantize [PALETTE]", "Quantize with given palette or the default Aseprite palette." },
     { "--macro SCALE", "When downscaling, multiply the size of non-albedo maps by this." },
+    { "--gen-godot4", "Generate Godot 4 materials alongside the textures." },
+    { "--nearest", "Generate any in-game materials to use nearest filtering instead of linear." },
     { "--ao", "Save ambientocclusion matmap." },
     { "-c, --color", "Save color/albedo matmap. True by default if nothing specified." },
     { "-d, --disp", "Save displacement matmap." },
@@ -46,6 +49,13 @@ const char *usage_text =
     "are not specified to be saved, cgrip downloads the albedo by default.\n"
     "\n"
     "optional arguments";
+
+int strncat_s(char *dest, const char *src, int sz)
+{
+    if (sz - 1 <= 0) return 0;
+    strncat(dest, src, sz - 1);
+    return strlen(src);
+}
 
 void verbose(const char *fmt, ...)
 {
@@ -170,6 +180,9 @@ int main(int argc, char *argv[])
         { "downscale", required_argument, NULL, 's' },
         { "macro", required_argument, NULL, 'M' },
         { "quantize", optional_argument, NULL, 'Q' },
+
+        { "gen-godot4", optional_argument, NULL, 'G' },
+        { "nearest", optional_argument, NULL, 'N' },
         
         { "all", no_argument, NULL, 'a' },
         { "ao", no_argument, NULL, 'A' },
@@ -241,6 +254,15 @@ int main(int argc, char *argv[])
                 palette = cgpro_palette_load_default();
             else
                 palette = cgpro_palette_load_from_file(optarg);
+            break;
+
+        case 'G':
+            arguments.gen_godot4 = 1;
+            if (optarg)
+                gen_godot4_set_root(optarg);
+            break;
+        case 'N':
+            arguments.filter_nearest = 1;
             break;
 
         case 'a': /* --all */
@@ -340,6 +362,12 @@ int main(int argc, char *argv[])
         }
 
     cgapi_materials_save(&mats, arguments.output);
+
+    if (arguments.gen_godot4)
+        for (i = 0; i < mats.material_count; i++) {
+            gen_godot4_generate(&mats.materials[i], arguments.output);
+        }
+
     cgapi_materials_free(&mats);
 
     return 0;

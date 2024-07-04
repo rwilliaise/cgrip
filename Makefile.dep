@@ -1,4 +1,5 @@
-cgrip.o: cgrip.c cgrip.h cgapi.h cgpro.h
+cgrip.o: cgrip.c cgrip.h cgapi.h cgpro.h gen_godot4.h
 cgapi.o: cgapi.c cgapi.h cgrip.h lodepng.h
 cgpro.o: cgpro.c cgpro.h cgapi.h lodepng.h
 lodepng.o: lodepng.c lodepng.h
+gen_godot4.o: gen_godot4.c gen_godot4.h cgapi.h cgrip.h

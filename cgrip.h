@@ -50,6 +50,8 @@ extern struct arguments {
     unsigned verbose : 1;
     unsigned downscale : 1;
     unsigned quantize : 1;
+    unsigned gen_godot4 : 1;
+    unsigned filter_nearest : 1;
     unsigned save_zip : 1;
     unsigned save_ambientocclusion: 1;
     unsigned save_color : 1;
@@ -63,6 +65,7 @@ extern struct arguments {
 #endif
 } arguments;
 
+int strncat_s(char *dest, const char *src, int sz);
 void verbose(const char *fmt, ...);
 void warn(const char *fmt, ...);
 CGRIP_NORETURN void fatal(const char *fmt, ...);

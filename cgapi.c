@@ -46,13 +46,6 @@ static const char *cgapi_output[] = {
 
 static const char *cgapi_download_ids_url = "https://ambientcg.com/api/v2/downloads_csv?type=Material&id=";
 
-static int strncat_s(char *dest, const char *src, int sz)
-{
-    if (sz - 1 <= 0) return 0;
-    strncat(dest, src, sz - 1);
-    return strlen(src);
-}
-
 static int endcmp(const char *str, const char *end) {
     int offset = strlen(str) - strlen(end);
     if (offset < 0) return 1;
@@ -63,6 +56,11 @@ struct cgapi_mem {
     char *res;
     size_t sz;
 };
+
+int cgapi_material_has_map(struct cgapi_material *mat, enum cgapi_matmap map)
+{
+    return mat->maps[map].data != NULL;
+}
 
 static int cgapi_read_mem(char *data, size_t membsz, size_t nmemb, void *ud)
 {
