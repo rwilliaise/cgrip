@@ -74,6 +74,7 @@ static char *gen_godot4_get_root(const char *path)
             fclose(t);
             return gen_godot4_root;
         }
+        *p = 0;
     }
     return NULL;
 }
