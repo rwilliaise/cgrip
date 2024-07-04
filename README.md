@@ -23,6 +23,16 @@ optional arguments
         Save all material maps found in the zips.
     -z, --zip [DIR]
         Save material zip file, optionally to dir DIR. default: OUTPUT
+    -s, --downscale SIZE
+        Downscale exported matmaps. format: WxH
+    --quantize [PALETTE]
+        Quantize with given palette or the default Aseprite palette.
+    --macro SCALE
+        When downscaling, multiply the size of non-albedo maps by this.
+    --gen-godot4
+        Generate Godot 4 materials alongside the textures.
+    --nearest
+        Generate any in-game materials to use nearest filtering instead of linear.
     --ao
         Save ambientocclusion matmap.
     -c, --color
@@ -52,6 +62,12 @@ Download Fabric076 and Fabric077 albedo, GL normal, and roughness maps to a
 `fabric/` folder.
 ```
 cgrip -ofabric -crngl Fabric076 Fabric077
+```
+
+Advanced usage: downscale the two from before and generate Godot 4 materials
+alongside them.
+```
+cgrip -s256x256 -ofabric --nearest --gen-godot4 -cmrngl Fabric076 Fabric077
 ```
 
 ## Building
