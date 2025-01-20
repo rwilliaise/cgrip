@@ -5,7 +5,10 @@
 #include <getopt.h>
 #include <stdarg.h>
 #include <string.h>
+
+/* TODO: cross-platform */
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "cgrip.h"
 #include "cgapi.h"
@@ -338,6 +341,13 @@ int main(int argc, char *argv[])
         usage(EXIT_FAILURE);
 
     mats = cgapi_download_ids(quality, (const char **) &argv[optind], pargc);
+    if (!arguments.output) {
+        char buf[256];
+        if (getcwd(buf, sizeof(buf)) != NULL) {
+            arguments.output = malloc(strlen(buf) + 1);
+            strcpy(arguments.output, buf);
+        }
+    }
 
     if (arguments.quantize && palette.data)
         for (i = 0; i < mats.material_count; i++) {

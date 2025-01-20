@@ -136,6 +136,8 @@ int gen_godot4_generate(struct cgapi_material *mat, const char *out)
     char buf[256] = { 0 };
     int sz = 0, i;
     FILE *fp;
+    if (out == NULL)
+        fatal("output path is <null>?");
     sz += strncat_s(buf + sz, out, sizeof buf - sz);
     sz += strncat_s(buf + sz, "/", sizeof buf - sz);
     sz += strncat_s(buf + sz, mat->id, sizeof buf - sz);

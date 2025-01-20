@@ -88,6 +88,7 @@ static struct cgapi_mem cgapi_curl_chunk(const char *url)
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cgapi_read_mem);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
     /* curl_easy_setopt(curl, CURLOPT_VERBOSE, (long) arguments.verbose); */
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, buf);
     res = curl_easy_perform(curl);
@@ -194,7 +195,7 @@ static void cgapi_process_material(struct cgapi_materials *out, const char *id, 
     }
 
     printf("downloading %s.zip\n", id);
-    verbose("downloading material %s\n", id);
+    verbose("downloading material %s (%s)\n", id, url);
     zip_mem = cgapi_curl_chunk(url);
     verbose("downloaded %s -> %lu B\n", id, zip_mem.sz);
 
