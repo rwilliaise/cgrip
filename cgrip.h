@@ -2,7 +2,7 @@
 #ifndef CGRIP_H_
 #define CGRIP_H_
 
-#define CGRIP_VERSION "0.1.1"
+#define CGRIP_VERSION "0.1.2"
 
 #ifdef __GNUC__
 #define inline __inline

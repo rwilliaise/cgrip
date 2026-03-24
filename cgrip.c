@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 #endif
 
     while (1) {
-        opt = getopt_long(argc, argv, short_opts,long_opts, NULL);
+        opt = getopt_long(argc, argv, short_opts, long_opts, NULL);
         if (opt == -1)
             break;
 
@@ -255,10 +255,13 @@ int main(int argc, char *argv[])
             break;
         case 'Q': /* --quantize */
             arguments.quantize = 1;
-            if (!optarg)
+            if (!optarg) {
+                verbose("quantize: using default palette\n", optarg);
                 palette = cgpro_palette_load_default();
-            else
+            } else {
+                verbose("quantize: using palette loaded from file %s\n", optarg);
                 palette = cgpro_palette_load_from_file(optarg);
+            }
             break;
 
         case 'G':
@@ -317,7 +320,7 @@ int main(int argc, char *argv[])
             break;
         case '?':
         default:
-            fatal("unknown option '%c'\n", opt);
+            fatal("unknown option '%c'\n", optopt);
             break;
         }
     }
@@ -349,16 +352,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (arguments.quantize && palette.data)
-        for (i = 0; i < mats.material_count; i++) {
-            struct cgapi_material *mat = &mats.materials[i];
-            struct cgapi_map *color = &mat->maps[cgapi_matmap_color];
-            if (color->data) {
-                verbose("quantizing %s\n", mat->id);
-                cgpro_quantize_to(color, palette);
-            }
-        }
-
     if (arguments.downscale)
         for (i = 0; i < mats.material_count; i++) {
             struct cgapi_material *mat = &mats.materials[i];
@@ -373,6 +366,16 @@ int main(int argc, char *argv[])
                     }
                 if (map->data && !cgpro_scale_nearest(map, width, height))
                     warn("failed to scale %d for matmap %s\n", j, mat->id);
+            }
+        }
+
+    if (arguments.quantize && palette.data)
+        for (i = 0; i < mats.material_count; i++) {
+            struct cgapi_material *mat = &mats.materials[i];
+            struct cgapi_map *color = &mat->maps[cgapi_matmap_color];
+            if (color->data) {
+                verbose("quantizing %s\n", mat->id);
+                cgpro_quantize_to(color, palette);
             }
         }
 
